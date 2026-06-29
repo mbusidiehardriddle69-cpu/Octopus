@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Survival Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+            }
+            70% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        @keyframes confettiFall {
+            from {
+                opacity: 1;
+                transform: translateY(-100vh) rotate(0deg);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        .bounce-in { animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        .confetti { animation: confettiFall 3s ease-out forwards; }
+        
+        .quiz-button {
+            transition: all 0.3s ease;
+        }
+        .quiz-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .quiz-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .answer-option {
+            transition: all 0.2s ease;
+        }
+        .answer-option:hover:not(:disabled) {
+            border-color: #000;
+            background-color: #f5f5f5;
+        }
+        .answer-option.selected {
+            border-color: #000;
+            background-color: #f3f3f3;
+        }
+        .answer-option.disabled {
+            pointer-events: none;
+        }
+        .answer-option.correct {
+            border-color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .answer-option.incorrect {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+    </style>
+</head>
+<body class="bg-white text-black font-sans">
+    <div id="root"></div>
+
+    <script>
+        // Quiz Data
+        const QUESTIONS = [
+            {
+                id: 1,
+                question: 'What is Notion?',
+                icon: '📝',
+                options: [
+                    'A productivity app for notes, databases, and wikis',
+                    '🍕 Order Pizza',
+                    '🦖 Dinosaur Mode',
+                    '☕ Make Coffee'
+                ],
+                correctAnswer: 0,
+                explanation: 'Notion is an all-in-one workspace for note-taking, databases, and knowledge management.'
+            },
+            {
+                id: 2,
+                question: 'What does the "/" command do in Notion?',
+                icon: '⌨️',
+                options: [
+                    'Divides numbers',
+                    'Opens a menu to insert blocks and content',
+                    '🚀 Launch a Rocket',
+                    'Deletes everything'
+                ],
+                correctAnswer: 1,
+                explanation: 'The "/" command opens the block menu, letting you insert various content types like text, images, tables, etc.'
+            },
+            {
+                id: 3,
+                question: 'What is a Notion Database?',
+                icon: '📊',
+                options: [
+                    'A spreadsheet only for numbers',
+                    'A structured collection of information with different views',
+                    '🍕 A pizza delivery app',
+                    'An email client'
+                ],
+                correctAnswer: 1,
+                explanation: 'A Notion Database is a flexible collection of information that can be viewed as tables, galleries, calendars, kanban boards, and more.'
+            },
+            {
+                id: 4,
+                question: 'Can you collaborate on Notion pages in real-time?',
+                icon: '👥',
+                options: [
+                    'No, Notion is for solo use only',
+                    'Yes, multiple users can edit simultaneously',
+                    'Only on Tuesdays',
+                    '🦖 Only with dinosaurs'
+                ],
+                correctAnswer: 1,
+                explanation: 'Notion supports real-time collaboration, allowing multiple team members to work on the same pages simultaneously.'
+            },
+            {
+                id: 5,
+                question: 'What are Notion Templates?',
+                icon: '📋',
+                options: [
+                    'Pre-designed page layouts you can duplicate',
+                    'A type of clothing',
+                    'A programming language',
+                    '☕ Coffee brewing instructions'
+                ],
+                correctAnswer: 0,
+                explanation: 'Templates are pre-built page setups that you can duplicate to quickly set up similar pages or databases.'
+            },
+            {
+                id: 6,
+                question: 'Can you insert images in Notion?',
+                icon: '🖼️',
+                options: [
+                    'No, Notion is text-only',
+                    'Yes, you can upload or embed images',
+                    'Only animated GIFs',
+                    '🍕 Only pizza photos'
+                ],
+                correctAnswer: 1,
+                explanation: 'Yes! Notion supports uploading images, embedding images from URLs, and even uploading files.'
+            },
+            {
+                id: 7,
+                question: 'Which icon represents Notion pages in the sidebar?',
+                icon: '📄',
+                options: [
+                    '🎮 Game controller',
+                    '📄 Page/document icon',
+                    '🍔 Hamburger',
+                    '🎸 Guitar'
+                ],
+                correctAnswer: 1,
+                explanation: 'Notion uses the 📄 document/page icon to represent pages in the sidebar navigation.'
+            },
+            {
+                id: 8,
+                question: 'Why do people use Notion?',
+                icon: '🎯',
+                options: [
+                    'To organize notes, tasks, and knowledge in one place',
+                    'To order food',
+                    '🦖 To track dinosaur sightings',
+                    '☕ To brew coffee'
+                ],
+                correctAnswer: 0,
+                explanation: 'People use Notion to centralize their notes, to-do lists, databases, and project management in one unified workspace.'
+            },
+            {
+                id: 9,
+                question: 'Which view shows dates and deadlines in calendar format?',
+                icon: '📅',
+                options: [
+                    'Grid view',
+                    'Gallery view',
+                    'Calendar view',
+                    'Timeline view'
+                ],
+                correctAnswer: 2,
+                explanation: 'The Calendar view displays database entries based on date properties, perfect for tracking deadlines and schedules.'
+            },
+            {
+                id: 10,
+                question: 'What is a Notion Workspace?',
+                icon: '🏠',
+                options: [
+                    'A virtual office building',
+                    'Your personal Notion account containing all your pages and databases',
+                    '🚀 A rocket launch facility',
+                    'A coffee shop'
+                ],
+                correctAnswer: 1,
+                explanation: 'A Workspace is your Notion account environment where all your pages, databases, and organizational structures live.'
+            }
+        ];
+
+        const FEEDBACK_MESSAGES = [
+            '😂 Your future self approves.',
+            '☕ Productivity +10.',
+            '📝 Even your sticky notes are jealous.',
+            '📚 Your workspace just got cleaner.',
+            '🎉 Nice! Marie Kondo would be proud.',
+            '🤔 Notion is smiling at you.',
+            '⚡ You\re on fire!',
+            '🚀 Keep it up!',
+            '💡 Smart answer!',
+            '🎯 Bullseye!'
+        ];
+
+        // State Management
+        let appState = 'home';
+        let quizData = {
+            questions: [],
+            currentQuestionIndex: 0,
+            selectedAnswer: null,
+            submitted: false,
+            score: 0,
+            userAnswers: [],
+            completed: false,
+        };
+
+        // Utility Functions
+        function shuffleArray(array) {
+            return [...array].sort(() => Math.random() - 0.5);
+        }
+
+        function getRandomFeedback() {
+            return FEEDBACK_MESSAGES[Math.floor(Math.random() * FEEDBACK_MESSAGES.length)];
+        }
+
+        function getScoreBadge(score, total) {
+            const percentage = (score / total) * 100;
+            if (percentage === 100) {
+                return { icon: '👑', title: 'Legend', message: 'Notion wants YOU to organize its pages.' };
+            }
+            if (percentage >= 70) {
+                return { icon: '🎉', title: 'Excellent', message: 'You\re becoming a productivity wizard.' };
+            }
+            if (percentage >= 40) {
+                return { icon: '😎', title: 'Learning', message: 'Organization is loading...' };
+            }
+            return { icon: '😂', title: 'Keep Trying', message: 'Your desktop has 874 screenshots. Maybe Notion can help.' };
+        }
+
+        function createConfetti() {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti fixed pointer-events-none text-4xl';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.innerHTML = ['🎉', '⭐', '🌟', '✨', '🎊'][Math.floor(Math.random() * 5)];
+            document.body.appendChild(confetti);
+            setTimeout(() => confetti.remove(), 3000);
+        }
+
+        // Render Functions
+        function renderHome() {
+            const root = document.getElementById('root');
+            root.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center px-4 fade-in">
+                    <div class="text-center max-w-2xl">
+                        <div class="text-7xl mb-6 animate-pulse">📝</div>
+                        <h1 class="text-5xl md:text-6xl font-bold mb-4">Notion Survival Quiz</h1>
+                        <p class="text-2xl text-gray-700 mb-6">Think you're a Notion expert?</p>
+                        <p class="text-xl text-gray-600 mb-8">Let's find out...</p>
+                        <p class="text-lg text-gray-500 mb-12">Or are your notes still living inside your Downloads folder? 😂</p>
+                        <button onclick="startQuiz()" class="quiz-button bg-black text-white px-12 py-4 rounded-lg text-xl font-semibold hover:bg-gray-800 active:scale-95">
+                            🚀 Start Quiz
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQuiz() {
+            const current = quizData.questions[quizData.currentQuestionIndex];
+            const progress = ((quizData.currentQuestionIndex + 1) / quizData.questions.length) * 100;
+            
+            const root = document.getElementById('root');
+            root.innerHTML = `
+                <div class="min-h-screen bg-white p-4 md:p-8 slide-in">
+                    <div class="max-w-2xl mx-auto">
+                        <!-- Progress Section -->
+                        <div class="mb-8">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-semibold text-gray-700">Question ${quizData.currentQuestionIndex + 1} of ${quizData.questions.length}</span>
+                                <span class="text-sm font-semibold text-gray-700">${Math.round(progress)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-black h-2 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Question Card -->
+                        <div class="bg-white border-2 border-gray-300 rounded-xl p-6 md:p-8 mb-8 bounce-in">
+                            <div class="text-5xl mb-4">${current.icon}</div>
+                            <h2 class="text-3xl md:text-4xl font-bold mb-8">${current.question}</h2>
+
+                            <!-- Answer Options -->
+                            <div class="space-y-3 mb-8">
+                                ${current.options.map((option, index) => `
+                                    <button onclick="selectAnswer(${index})" class="answer-option w-full p-4 border-2 border-gray-300 rounded-lg text-left text-lg font-medium transition-all ${quizData.selectedAnswer === index ? 'selected' : ''} ${quizData.submitted && index === current.correctAnswer ? 'correct' : ''} ${quizData.submitted && quizData.selectedAnswer === index && index !== current.correctAnswer ? 'incorrect' : ''} ${quizData.submitted ? 'disabled' : ''}" ${quizData.submitted ? 'disabled' : ''}>
+                                        ${option}
+                                        ${quizData.submitted && index === current.correctAnswer ? '<span class="float-right text-green-600">✓</span>' : ''}
+                                        ${quizData.submitted && quizData.selectedAnswer === index && index !== current.correctAnswer ? '<span class="float-right text-red-600">✗</span>' : ''}
+                                    </button>
+                                `).join('')}
+                            </div>
+
+                            <!-- Feedback Message -->
+                            ${quizData.submitted ? `
+                                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 animate-slideIn">
+                                    <p class="text-lg font-semibold mb-2">${getRandomFeedback()}</p>
+                                    <p class="text-gray-700">${current.explanation}</p>
+                                </div>
+                            ` : ''}
+
+                            <!-- Action Buttons -->
+                            <div class="flex gap-4 flex-wrap">
+                                ${!quizData.submitted ? `
+                                    <button onclick="submitAnswer()" class="quiz-button flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold ${quizData.selectedAnswer === null ? 'opacity-50 cursor-not-allowed' : ''}" ${quizData.selectedAnswer === null ? 'disabled' : ''}>
+                                        Submit Answer
+                                    </button>
+                                ` : ''}
+                                
+                                ${quizData.submitted && quizData.currentQuestionIndex > 0 ? `
+                                    <button onclick="previousQuestion()" class="quiz-button flex-1 bg-gray-200 text-black px-6 py-3 rounded-lg font-semibold">
+                                        ← Previous
+                                    </button>
+                                ` : ''}
+
+                                ${quizData.submitted ? `
+                                    ${quizData.currentQuestionIndex === quizData.questions.length - 1 ? `
+                                        <button onclick="finishQuiz()" class="quiz-button flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold">
+                                            Finish Quiz
+                                        </button>
+                                    ` : `
+                                        <button onclick="nextQuestion()" class="quiz-button flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold">
+                                            Next →
+                                        </button>
+                                    `}
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResults() {
+            const total = quizData.questions.length;
+            const percentage = (quizData.score / total) * 100;
+            const badge = getScoreBadge(quizData.score, total);
+            
+            // Create confetti for perfect score
+            if (quizData.score === total) {
+                for (let i = 0; i < 30; i++) {
+                    setTimeout(() => createConfetti(), i * 100);
+                }
+            }
+
+            const root = document.getElementById('root');
+            root.innerHTML = `
+                <div class="min-h-screen bg-white p-4 md:p-8 fade-in">
+                    <div class="max-w-2xl mx-auto">
+                        <!-- Results Header -->
+                        <div class="text-center mb-12">
+                            <div class="text-8xl mb-4 bounce-in">${badge.icon}</div>
+                            <h1 class="text-5xl md:text-6xl font-bold mb-2">${badge.title}</h1>
+                            <p class="text-2xl text-gray-600 mb-8">${badge.message}</p>
+                        </div>
+
+                        <!-- Score Card -->
+                        <div class="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 rounded-xl p-8 mb-8">
+                            <div class="text-center mb-8">
+                                <div class="text-7xl font-bold mb-2">${quizData.score}/${total}</div>
+                                <div class="text-4xl font-bold text-gray-600">${Math.round(percentage)}%</div>
+                            </div>
+
+                            <!-- Progress Circle -->
+                            <div class="flex justify-center mb-8">
+                                <svg width="200" height="200" viewBox="0 0 200 200" class="transform -rotate-90">
+                                    <circle cx="100" cy="100" r="90" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+                                    <circle cx="100" cy="100" r="90" fill="none" stroke="#000" stroke-width="12" stroke-dasharray="${2 * Math.PI * 90}" stroke-dashoffset="${2 * Math.PI * 90 * (1 - percentage / 100)}" class="transition-all duration-1000"/>
+                                </svg>
+                                <div class="absolute flex items-center justify-center" style="width: 200px; height: 200px;">
+                                    <span class="text-3xl font-bold">${Math.round(percentage)}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Statistics -->
+                        <div class="grid grid-cols-2 gap-4 mb-8">
+                            <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                                <div class="text-2xl font-bold text-blue-600">${quizData.score}</div>
+                                <div class="text-gray-600">Correct Answers</div>
+                            </div>
+                            <div class="bg-red-50 p-6 rounded-lg border border-red-200">
+                                <div class="text-2xl font-bold text-red-600">${total - quizData.score}</div>
+                                <div class="text-gray-600">Wrong Answers</div>
+                            </div>
+                        </div>
+
+                        <!-- Answer Review -->
+                        <div class="mb-8">
+                            <h2 class="text-2xl font-bold mb-4">Answer Review</h2>
+                            <div class="space-y-3">
+                                ${quizData.userAnswers.map((answer, index) => {
+                                    const question = quizData.questions.find(q => q.id === answer.questionId);
+                                    return `
+                                        <div class="border-l-4 ${answer.isCorrect ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'} p-4 rounded">
+                                            <div class="font-semibold mb-1">Q${index + 1}: ${question.question}</div>
+                                            <div class="text-sm text-gray-700">Your answer: <span class="font-medium">${question.options[answer.selectedAnswer]}</span></div>
+                                            ${!answer.isCorrect ? `<div class="text-sm text-green-700">Correct answer: <span class="font-medium">${question.options[question.correctAnswer]}</span></div>` : ''}
+                                            <div class="text-sm mt-2 text-gray-600">${question.explanation}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-4 flex-col md:flex-row">
+                            <button onclick="restartQuiz()" class="quiz-button flex-1 bg-black text-white px-8 py-4 rounded-lg font-semibold text-lg">
+                                🔄 Restart Quiz
+                            </button>
+                            <button onclick="returnHome()" class="quiz-button flex-1 bg-gray-200 text-black px-8 py-4 rounded-lg font-semibold text-lg">
+                                🏠 Return Home
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Event Handlers
+        function startQuiz() {
+            const shuffled = shuffleArray(QUESTIONS);
+            quizData = {
+                questions: shuffled,
+                currentQuestionIndex: 0,
+                selectedAnswer: null,
+                submitted: false,
+                score: 0,
+                userAnswers: [],
+                completed: false,
+            };
+            appState = 'quiz';
+            renderQuiz();
+        }
+
+        function selectAnswer(index) {
+            if (!quizData.submitted) {
+                quizData.selectedAnswer = index;
+                renderQuiz();
+            }
+        }
+
+        function submitAnswer() {
+            if (quizData.selectedAnswer === null) return;
+            
+            const current = quizData.questions[quizData.currentQuestionIndex];
+            const isCorrect = quizData.selectedAnswer === current.correctAnswer;
+            
+            if (isCorrect) {
+                quizData.score++;
+            }
+            
+            quizData.userAnswers.push({
+                questionId: current.id,
+                selectedAnswer: quizData.selectedAnswer,
+                isCorrect: isCorrect
+            });
+            
+            quizData.submitted = true;
+            renderQuiz();
+        }
+
+        function nextQuestion() {
+            const nextIndex = quizData.currentQuestionIndex + 1;
+            
+            if (nextIndex < quizData.questions.length) {
+                quizData.currentQuestionIndex = nextIndex;
+                quizData.selectedAnswer = null;
+                quizData.submitted = false;
+                renderQuiz();
+            }
+        }
+
+        function previousQuestion() {
+            if (quizData.currentQuestionIndex > 0) {
+                quizData.currentQuestionIndex--;
+                const prevAnswer = quizData.userAnswers[quizData.currentQuestionIndex];
+                quizData.selectedAnswer = prevAnswer.selectedAnswer;
+                quizData.submitted = true;
+                renderQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            quizData.completed = true;
+            appState = 'results';
+            renderResults();
+        }
+
+        function restartQuiz() {
+            startQuiz();
+        }
+
+        function returnHome() {
+            appState = 'home';
+            quizData = {
+                questions: [],
+                currentQuestionIndex: 0,
+                selectedAnswer: null,
+                submitted: false,
+                score: 0,
+                userAnswers: [],
+                completed: false,
+            };
+            renderHome();
+        }
+
+        // Initial Render
+        renderHome();
+    </script>
+</body>
+</html>
